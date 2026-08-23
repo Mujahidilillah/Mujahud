@@ -1,119 +1,136 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard — Bedside Monitor</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/style.css">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard — Pasien Monitor</title>
+<link rel="stylesheet" href="css/style.css" />
 </head>
-<body class="dash-body">
+<body>
 
-  <header class="topbar">
-    <div class="topbar-brand">
-      <svg class="ekg-trace ekg-small" viewBox="0 0 220 40" width="90" height="18" aria-hidden="true">
-        <path class="ekg-path" d="M0 20 H60 L68 20 L74 6 L82 34 L90 20 L96 20 L100 12 L104 20 H220"/>
-      </svg>
-      <span class="brand-name small">BEDSIDE MONITOR</span>
+<header class="dash-header">
+  <div class="dash-title">
+    <span class="pulse-dot"></span>
+    <h1>❤ Pasien Monitor</h1>
+    <span class="mode-pill" id="modePill">MANUAL</span>
+  </div>
+
+  <div class="dash-right">
+    <div class="clock-box">
+      <div class="clock-time" id="clockTime">--:--:--</div>
+      <div class="clock-date" id="clockDate">-- ------ ----</div>
+    </div>
+    <div class="user-chip">
+      <span><span class="conn-dot" id="connDot"></span><span id="connLabel">Menghubungkan…</span></span>
+      <span id="userEmail">-</span>
+      <button class="btn btn-outline" id="logoutBtn" style="width:auto;padding:7px 14px;font-size:11px;">Keluar</button>
+    </div>
+  </div>
+</header>
+
+<main class="dash-body">
+
+  <!-- ================= HASIL PENGUKURAN TERAKHIR ================= -->
+  <section class="panel">
+    <p class="panel-title">
+      Hasil Pengukuran Terakhir
+      <span class="status-tag status-normal" id="statusTag">NORMAL</span>
+    </p>
+
+    <div class="vitals-grid">
+      <div class="vital-box">
+        <div class="vital-label">SYS</div>
+        <div class="vital-value" id="valSys">--</div>
+        <div class="vital-unit">mmHg</div>
+      </div>
+      <div class="vital-box">
+        <div class="vital-label">DIA</div>
+        <div class="vital-value" id="valDia">--</div>
+        <div class="vital-unit">mmHg</div>
+      </div>
+      <div class="vital-box">
+        <div class="vital-label">MAP</div>
+        <div class="vital-value" id="valMap">--</div>
+        <div class="vital-unit">mmHg</div>
+      </div>
     </div>
 
-    <div class="topbar-status">
-      <span id="connDot" class="conn-dot"></span>
-      <span id="connLabel" class="conn-label">Menghubungkan…</span>
+    <div class="meta-row">
+      <span>Terakhir diperbarui: <span id="lastUpdated">-</span></span>
+      <span>Mode alat: <span id="deviceModeLabel">-</span></span>
     </div>
+  </section>
 
-    <div class="topbar-clock">
-      <span id="clockTime" class="clock-time">--:--:--</span>
-      <span id="clockDate" class="clock-date">-- ------- ----</span>
-    </div>
+  <!-- ================= REAL-TIME BPM & SPO2 ================= -->
+  <section class="panel">
+    <p class="panel-title">
+      Monitor Real-Time
+      <span class="status-tag status-normal" id="fingerTag">JARI TERDETEKSI</span>
+    </p>
 
-    <button id="logoutBtn" class="btn btn-ghost">Keluar</button>
-  </header>
-
-  <main class="dash-main">
-
-    <section class="vitals-grid">
-
-      <article class="vital-card vital-bp">
-        <h2 class="vital-title">Tekanan Darah</h2>
-        <div class="vital-bp-row">
-          <div class="vital-bp-item">
-            <span class="vital-number" id="valSistolik">--</span>
-            <span class="vital-unit">SYS mmHg</span>
-          </div>
-          <span class="vital-sep">/</span>
-          <div class="vital-bp-item">
-            <span class="vital-number" id="valDiastolik">--</span>
-            <span class="vital-unit">DIA mmHg</span>
-          </div>
-        </div>
-        <div class="vital-map">
-          <span class="vital-map-label">MAP</span>
-          <span class="vital-map-value" id="valMap">--</span>
-          <span class="vital-unit">mmHg</span>
-        </div>
-        <span id="statusBadge" class="status-badge">MENUNGGU DATA</span>
-      </article>
-
-      <article class="vital-card vital-hr">
-        <h2 class="vital-title">Detak Jantung</h2>
-        <div class="vital-main-row">
-          <span class="vital-number big" id="valBpm">--</span>
-          <span class="vital-unit">BPM</span>
-        </div>
-        <svg class="ekg-trace ekg-card" viewBox="0 0 220 40" width="100%" height="30" aria-hidden="true">
-          <path class="ekg-path ekg-path-hr" d="M0 20 H60 L68 20 L74 6 L82 34 L90 20 L96 20 L100 12 L104 20 H220"/>
-        </svg>
-      </article>
-
-      <article class="vital-card vital-spo2">
-        <h2 class="vital-title">Saturasi Oksigen</h2>
-        <div class="vital-main-row">
-          <span class="vital-number big" id="valSpo2">--</span>
-          <span class="vital-unit">% SpO₂</span>
-        </div>
-      </article>
-
-    </section>
-
-    <section class="history-panel">
-      <div class="history-head">
-        <div>
-          <h2 class="history-title">Riwayat Pengukuran</h2>
-          <p class="history-sub" id="autoSaveInfo">Tersimpan otomatis setiap 30 menit · belum ada data tersimpan</p>
-        </div>
-        <div class="history-actions">
-          <button id="logNowBtn" class="btn btn-ghost">Catat Sekarang</button>
-          <button id="downloadBtn" class="btn btn-primary">Unduh Data (CSV)</button>
+    <div class="bighr-grid">
+      <div class="bigvital hr">
+        <span class="icon">❤</span>
+        <div class="vital-label">BPM</div>
+        <div class="vital-value" id="valBpm">--</div>
+        <div class="ecg-strip" id="ecgStrip">
+          <svg viewBox="0 0 600 60" preserveAspectRatio="none">
+            <polyline fill="none" stroke="#ff3b3b" stroke-width="2"
+              points="0,30 40,30 55,10 70,50 85,30 140,30 155,18 165,42 180,30 260,30 275,8 290,52 305,30 380,30 395,18 405,42 420,30 500,30 515,10 530,50 545,30 600,30
+                      600,30 640,30 655,10 670,50 685,30 740,30 755,18 765,42 780,30 860,30 875,8 890,52 905,30 980,30 995,18 1005,42 1020,30 1100,30 1115,10 1130,50 1145,30 1200,30" />
+          </svg>
         </div>
       </div>
-
-      <div class="table-wrap">
-        <table class="history-table">
-          <thead>
-            <tr>
-              <th>Waktu Dicatat</th>
-              <th>SYS</th>
-              <th>DIA</th>
-              <th>MAP</th>
-              <th>BPM</th>
-              <th>SpO₂</th>
-            </tr>
-          </thead>
-          <tbody id="historyBody">
-            <tr class="empty-row"><td colspan="6">Belum ada riwayat tersimpan.</td></tr>
-          </tbody>
-        </table>
+      <div class="bigvital spo2">
+        <span class="icon">SpO₂</span>
+        <div class="vital-label">SpO₂</div>
+        <div class="vital-value" id="valSpo2">--<span style="font-size:20px;">%</span></div>
       </div>
-    </section>
+    </div>
+  </section>
 
-  </main>
+  <!-- ================= RIWAYAT / HISTORY ================= -->
+  <section class="panel" style="grid-column: 1 / -1;">
+    <p class="panel-title">Riwayat Pengukuran (auto-simpan tiap 30 menit)</p>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-  <script src="assets/js/firebase-config.js"></script>
-  <script src="assets/js/dashboard.js"></script>
+    <div class="history-toolbar">
+      <span class="autosave-note" id="autosaveNote">Simpan otomatis berikutnya dalam --:--</span>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn btn-outline" id="saveNowBtn">💾 Simpan Sekarang</button>
+        <button class="btn btn-primary" id="downloadBtn">⬇ Download CSV</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Waktu</th>
+            <th>SYS</th>
+            <th>DIA</th>
+            <th>MAP</th>
+            <th>BPM</th>
+            <th>SpO₂</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody">
+          <tr class="empty-row"><td colspan="7">Belum ada data riwayat tersimpan.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<p class="footer-note">
+  Bedside Patient Monitor — data diambil dari Firebase Realtime Database (<code>/monitor</code>, <code>/realtime</code>, <code>/riwayat</code>).
+</p>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/dashboard.js"></script>
 </body>
 </html>
