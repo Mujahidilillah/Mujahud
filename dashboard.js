@@ -1,242 +1,367 @@
-// =====================================================
-// DASHBOARD — dashboard.html
-// =====================================================
+// =====================================================================
+// DASHBOARD.JS
+// - Menampilkan data dari Firebase RTDB sesuai struktur kode ESP32:
+//     /monitor/{sistolik,diastolik,map,bpm,spo2,timestamp}
+//     /realtime/{bpm,spo2}
+// - Menyimpan snapshot ke /riwayat setiap 30 menit (otomatis) + manual
+// - Jam real-time & tombol download CSV
+// =====================================================================
 
-const auth = firebase.auth();
-const db = firebase.database();
+const AUTOSAVE_INTERVAL_MS = 30 * 60 * 1000; // 30 menit
+const LOCAL_HISTORY_KEY = "pm_riwayat_local";
 
-const AUTO_SAVE_INTERVAL_MS = 30 * 60 * 1000; // 30 menit
-const STALE_AFTER_MS = 10 * 1000;             // dianggap "offline" jika >10 detik tidak ada update
+const IS_DEMO_MODE =
+  typeof FORCE_DEMO_MODE !== "undefined" && FORCE_DEMO_MODE
+    ? true
+    : !firebaseConfig || firebaseConfig.apiKey === "YOUR_API_KEY";
 
-let latestReading = null;   // { sistolik, diastolik, map, bpm, spo2 }
-let lastUpdateAt = 0;
-let autoSaveTimer = null;
+let currentMonitor = { sistolik: 0, diastolik: 0, map: 0, bpm: 0, spo2: 0, timestamp: "-" };
+let currentRealtime = { bpm: 0, spo2: 0 };
+let fingerDetected = true;
+let historyData = [];
+let nextAutosaveAt = Date.now() + AUTOSAVE_INTERVAL_MS;
 
-// ---------- 1. Jaga akses: harus login ----------
-auth.onAuthStateChanged((user) => {
-  if (!user) {
-    window.location.replace("index.html");
+// ---------------------------------------------------------------
+// ELEMEN DOM
+// ---------------------------------------------------------------
+const el = (id) => document.getElementById(id);
+const modePill = el("modePill");
+const clockTime = el("clockTime");
+const clockDate = el("clockDate");
+const connDot = el("connDot");
+const connLabel = el("connLabel");
+const userEmail = el("userEmail");
+const logoutBtn = el("logoutBtn");
+
+const valSys = el("valSys");
+const valDia = el("valDia");
+const valMap = el("valMap");
+const statusTag = el("statusTag");
+const lastUpdated = el("lastUpdated");
+const deviceModeLabel = el("deviceModeLabel");
+
+const valBpm = el("valBpm");
+const valSpo2 = el("valSpo2");
+const fingerTag = el("fingerTag");
+const ecgStrip = el("ecgStrip");
+
+const historyBody = el("historyBody");
+const autosaveNote = el("autosaveNote");
+const saveNowBtn = el("saveNowBtn");
+const downloadBtn = el("downloadBtn");
+
+// =====================================================================
+// 1) AUTH GUARD
+// =====================================================================
+function goToLogin() {
+  window.location.href = "index.html";
+}
+
+if (IS_DEMO_MODE) {
+  const loggedIn = sessionStorage.getItem("pm_logged_in") === "1";
+  if (!loggedIn) { goToLogin(); }
+  userEmail.textContent = sessionStorage.getItem("pm_user_email") || "demo@pasienmonitor.local";
+  connLabel.textContent = "Demo mode";
+  connDot.classList.add("online");
+} else {
+  firebase.initializeApp(firebaseConfig);
+  firebase.auth().onAuthStateChanged((user) => {
+    if (!user) { goToLogin(); return; }
+    userEmail.textContent = user.email || "Pengguna";
+  });
+}
+
+logoutBtn.addEventListener("click", () => {
+  if (IS_DEMO_MODE) {
+    sessionStorage.removeItem("pm_logged_in");
+    goToLogin();
+  } else {
+    firebase.auth().signOut().then(goToLogin);
+  }
+});
+
+// =====================================================================
+// 2) JAM REAL-TIME
+// =====================================================================
+const HARI = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+
+function updateClock() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  const ss = String(now.getSeconds()).padStart(2, "0");
+  clockTime.textContent = `${hh}:${mm}:${ss}`;
+  clockDate.textContent = `${HARI[now.getDay()]}, ${now.getDate()} ${BULAN[now.getMonth()]} ${now.getFullYear()}`;
+
+  // Hitung mundur autosave berikutnya
+  const remainMs = Math.max(0, nextAutosaveAt - now.getTime());
+  const remMin = String(Math.floor(remainMs / 60000)).padStart(2, "0");
+  const remSec = String(Math.floor((remainMs % 60000) / 1000)).padStart(2, "0");
+  autosaveNote.textContent = `Simpan otomatis berikutnya dalam ${remMin}:${remSec}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// =====================================================================
+// 3) HITUNG STATUS (meniru logika hitungTekanan() / tampilHasil() di ESP32)
+// =====================================================================
+function hitungStatus(sistolik, diastolik) {
+  if (sistolik >= 140 || diastolik >= 90) return "TINGGI";
+  if (sistolik < 90 || diastolik < 60) return "RENDAH";
+  return "NORMAL";
+}
+
+function renderStatusTag(target, status) {
+  target.classList.remove("status-normal", "status-tinggi", "status-rendah");
+  if (status === "TINGGI") target.classList.add("status-tinggi");
+  else if (status === "RENDAH") target.classList.add("status-rendah");
+  else target.classList.add("status-normal");
+  target.textContent = status;
+}
+
+// =====================================================================
+// 4) RENDER DATA KE UI
+// =====================================================================
+function renderMonitor() {
+  valSys.textContent = currentMonitor.sistolik || "--";
+  valDia.textContent = currentMonitor.diastolik || "--";
+  valMap.textContent = currentMonitor.map || "--";
+
+  const status = hitungStatus(Number(currentMonitor.sistolik) || 0, Number(currentMonitor.diastolik) || 0);
+  renderStatusTag(statusTag, status);
+
+  lastUpdated.textContent = formatTimestamp(currentMonitor.timestamp);
+}
+
+function renderRealtime() {
+  if (!fingerDetected) {
+    valBpm.textContent = "--";
+    valSpo2.innerHTML = `--<span style="font-size:20px;">%</span>`;
+    valBpm.classList.add("no-finger");
+    valSpo2.classList.add("no-finger");
+    fingerTag.textContent = "TIDAK ADA JARI";
+    fingerTag.classList.remove("status-normal");
+    fingerTag.classList.add("status-rendah");
+    ecgStrip.classList.remove("animate");
     return;
   }
-  initDashboard();
-});
 
-document.getElementById("logoutBtn").addEventListener("click", () => {
-  auth.signOut().then(() => window.location.replace("index.html"));
-});
+  valBpm.classList.remove("no-finger");
+  valSpo2.classList.remove("no-finger");
+  fingerTag.textContent = "JARI TERDETEKSI";
+  fingerTag.classList.remove("status-rendah");
+  fingerTag.classList.add("status-normal");
 
-// ---------- 2. Jam real-time ----------
-function tickClock() {
-  const now = new Date();
+  valBpm.textContent = currentRealtime.bpm || "--";
+  valSpo2.innerHTML = `${currentRealtime.spo2 || "--"}<span style="font-size:20px;">%</span>`;
 
-  const time = now.toLocaleTimeString("id-ID", { hour12: false });
-  const date = now.toLocaleDateString("id-ID", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric"
-  });
-
-  document.getElementById("clockTime").textContent = time;
-  document.getElementById("clockDate").textContent = date;
-
-  // Tandai offline jika lama tidak ada data baru dari alat
-  updateConnectionFreshness();
-}
-setInterval(tickClock, 1000);
-tickClock();
-
-// ---------- 3. Status koneksi Firebase ----------
-const connDot = document.getElementById("connDot");
-const connLabel = document.getElementById("connLabel");
-
-db.ref(".info/connected").on("value", (snap) => {
-  const connected = snap.val() === true;
-  if (!connected) {
-    connDot.className = "conn-dot offline";
-    connLabel.textContent = "Firebase terputus";
-  } else {
-    updateConnectionFreshness();
-  }
-});
-
-function updateConnectionFreshness() {
-  if (!db.ref(".info/connected")) return;
-  const staleMs = Date.now() - lastUpdateAt;
-
-  if (lastUpdateAt === 0) {
-    connDot.className = "conn-dot";
-    connLabel.textContent = "Menunggu data alat…";
-  } else if (staleMs > STALE_AFTER_MS) {
-    connDot.className = "conn-dot offline";
-    connLabel.textContent = "Alat tidak merespons";
-  } else {
-    connDot.className = "conn-dot online";
-    connLabel.textContent = "Alat tersambung";
+  if (currentRealtime.bpm > 0) {
+    const duration = Math.max(0.3, 60 / currentRealtime.bpm).toFixed(2);
+    ecgStrip.querySelector("svg").style.animationDuration = duration + "s";
+    ecgStrip.classList.add("animate");
   }
 }
 
-// ---------- 4. Data vital real-time dari /monitor ----------
-function renderVitals(data) {
-  const sistolik = Number(data.sistolik ?? 0);
-  const diastolik = Number(data.diastolik ?? 0);
-  const map = Number(data.map ?? 0);
-  const bpm = Number(data.bpm ?? 0);
-  const spo2 = Number(data.spo2 ?? 0);
-
-  document.getElementById("valSistolik").textContent = sistolik || "--";
-  document.getElementById("valDiastolik").textContent = diastolik || "--";
-  document.getElementById("valMap").textContent = map || "--";
-  document.getElementById("valBpm").textContent = bpm || "--";
-  document.getElementById("valSpo2").textContent = spo2 || "--";
-
-  const badge = document.getElementById("statusBadge");
-
-  if (!sistolik && !diastolik) {
-    badge.textContent = "MENUNGGU DATA";
-    badge.className = "status-badge";
-  } else if (sistolik >= 140 || diastolik >= 90) {
-    badge.textContent = "TINGGI";
-    badge.className = "status-badge tinggi";
-  } else if (sistolik < 90 || diastolik < 60) {
-    badge.textContent = "RENDAH";
-    badge.className = "status-badge rendah";
-  } else {
-    badge.textContent = "NORMAL";
-    badge.className = "status-badge normal";
+function formatTimestamp(ts) {
+  if (!ts || ts === "-") return "-";
+  // timestamp dari ESP32 dikirim sebagai millis() (String), bukan epoch asli.
+  // Kalau nilainya kecil (millis sejak boot), tampilkan apa adanya + label.
+  const n = Number(ts);
+  if (!isNaN(n) && n > 1000000000000) {
+    // terlihat seperti epoch ms sungguhan
+    return new Date(n).toLocaleString("id-ID");
   }
-
-  latestReading = { sistolik, diastolik, map, bpm, spo2 };
-  lastUpdateAt = Date.now();
-  updateConnectionFreshness();
+  return `${ts} ms (sejak boot alat)`;
 }
 
-function initDashboard() {
-  db.ref("monitor").on("value", (snap) => {
-    const data = snap.val();
-    if (data) renderVitals(data);
+// =====================================================================
+// 5) KONEKSI FIREBASE / DEMO SIMULATION
+// =====================================================================
+if (!IS_DEMO_MODE) {
+  const db = firebase.database();
+
+  db.ref(".info/connected").on("value", (snap) => {
+    const online = snap.val() === true;
+    connDot.classList.toggle("online", online);
+    connDot.classList.toggle("offline", !online);
+    connLabel.textContent = online ? "Terhubung" : "Terputus";
   });
 
-  listenHistory();
-  scheduleAutoSave();
-}
-
-// ---------- 5. Riwayat pengukuran (/history) ----------
-const historyBody = document.getElementById("historyBody");
-const autoSaveInfo = document.getElementById("autoSaveInfo");
-
-function formatWaktu(ts) {
-  return new Date(ts).toLocaleString("id-ID", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
-  });
-}
-
-function listenHistory() {
-  db.ref("history").limitToLast(100).on("value", (snap) => {
-    const rows = [];
-    snap.forEach((child) => {
-      rows.push(child.val());
-    });
-    rows.sort((a, b) => b.ts - a.ts); // terbaru dulu
-    renderHistoryTable(rows);
-
-    if (rows.length > 0) {
-      autoSaveInfo.textContent =
-        `Tersimpan otomatis setiap 30 menit · terakhir disimpan ${formatWaktu(rows[0].ts)}`;
+  db.ref("/monitor").on("value", (snap) => {
+    const v = snap.val();
+    if (v) {
+      currentMonitor = {
+        sistolik: v.sistolik ?? 0,
+        diastolik: v.diastolik ?? 0,
+        map: v.map ?? 0,
+        bpm: v.bpm ?? 0,
+        spo2: v.spo2 ?? 0,
+        timestamp: v.timestamp ?? "-"
+      };
+      renderMonitor();
     }
   });
+
+  db.ref("/realtime").on("value", (snap) => {
+    const v = snap.val();
+    if (v) {
+      currentRealtime = { bpm: v.bpm ?? 0, spo2: v.spo2 ?? 0 };
+      fingerDetected = (v.bpm > 0 || v.spo2 > 0);
+      renderRealtime();
+    }
+  });
+
+  // Sinkronkan riwayat dari server (supaya konsisten lintas perangkat)
+  db.ref("/riwayat").limitToLast(200).on("value", (snap) => {
+    const v = snap.val() || {};
+    historyData = Object.values(v).sort((a, b) => (a._t || 0) - (b._t || 0));
+    renderHistory();
+  });
+} else {
+  connLabel.textContent = "Demo mode";
+  // Simulasikan data vital supaya tampilan bisa langsung dicoba
+  historyData = loadLocalHistory();
+  renderHistory();
+
+  setInterval(() => {
+    const bpm = 68 + Math.round(Math.sin(Date.now() / 4000) * 8) + Math.round(Math.random() * 4);
+    const spo2 = 96 + Math.round(Math.random() * 3);
+    currentRealtime = { bpm, spo2 };
+    fingerDetected = true;
+    renderRealtime();
+  }, 1200);
+
+  const sys = 118 + Math.round(Math.random() * 10);
+  const dia = 76 + Math.round(Math.random() * 8);
+  currentMonitor = {
+    sistolik: sys,
+    diastolik: dia,
+    map: Math.round((sys + 2 * dia) / 3),
+    bpm: 72,
+    spo2: 98,
+    timestamp: Date.now()
+  };
+  renderMonitor();
 }
 
-function renderHistoryTable(rows) {
-  if (rows.length === 0) {
-    historyBody.innerHTML = `<tr class="empty-row"><td colspan="6">Belum ada riwayat tersimpan.</td></tr>`;
+// =====================================================================
+// 6) RIWAYAT (HISTORY) — render tabel
+// =====================================================================
+function renderHistory() {
+  if (!historyData.length) {
+    historyBody.innerHTML = `<tr class="empty-row"><td colspan="7">Belum ada data riwayat tersimpan.</td></tr>`;
     return;
   }
-
-  historyBody.innerHTML = rows.map((r) => `
-    <tr>
-      <td>${formatWaktu(r.ts)}</td>
-      <td>${r.sistolik ?? "-"}</td>
-      <td>${r.diastolik ?? "-"}</td>
-      <td>${r.map ?? "-"}</td>
-      <td>${r.bpm ?? "-"}</td>
-      <td>${r.spo2 ?? "-"}</td>
-    </tr>
-  `).join("");
+  const rows = historyData
+    .slice()
+    .reverse()
+    .map((row) => {
+      const status = hitungStatus(Number(row.sistolik) || 0, Number(row.diastolik) || 0);
+      const statusClass = status === "TINGGI" ? "status-tinggi" : status === "RENDAH" ? "status-rendah" : "status-normal";
+      return `<tr>
+        <td>${row.waktu || "-"}</td>
+        <td>${row.sistolik ?? "-"}</td>
+        <td>${row.diastolik ?? "-"}</td>
+        <td>${row.map ?? "-"}</td>
+        <td>${row.bpm ?? "-"}</td>
+        <td>${row.spo2 ?? "-"}</td>
+        <td><span class="status-tag ${statusClass}">${status}</span></td>
+      </tr>`;
+    })
+    .join("");
+  historyBody.innerHTML = rows;
 }
 
-// ---------- 6. Simpan snapshot ke /history ----------
-function saveSnapshot() {
-  if (!latestReading) return; // belum ada data dari alat
+function loadLocalHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(LOCAL_HISTORY_KEY) || "[]");
+  } catch (e) {
+    return [];
+  }
+}
 
-  const record = {
-    ts: Date.now(),
-    ...latestReading
+function saveLocalHistory() {
+  try {
+    localStorage.setItem(LOCAL_HISTORY_KEY, JSON.stringify(historyData.slice(-500)));
+  } catch (e) {}
+}
+
+// =====================================================================
+// 7) SIMPAN SNAPSHOT (otomatis tiap 30 menit + tombol manual)
+// =====================================================================
+function simpanSnapshot() {
+  const now = new Date();
+  const entry = {
+    _t: now.getTime(),
+    waktu: now.toLocaleString("id-ID"),
+    sistolik: currentMonitor.sistolik,
+    diastolik: currentMonitor.diastolik,
+    map: currentMonitor.map,
+    bpm: fingerDetected ? currentRealtime.bpm : (currentMonitor.bpm || 0),
+    spo2: fingerDetected ? currentRealtime.spo2 : (currentMonitor.spo2 || 0)
   };
 
-  db.ref("history").push(record);
-}
+  historyData.push(entry);
+  renderHistory();
+  saveLocalHistory();
 
-function scheduleAutoSave() {
-  if (autoSaveTimer) clearInterval(autoSaveTimer);
-  autoSaveTimer = setInterval(saveSnapshot, AUTO_SAVE_INTERVAL_MS);
-}
-
-document.getElementById("logNowBtn").addEventListener("click", () => {
-  if (!latestReading) {
-    alert("Belum ada data dari alat untuk dicatat.");
-    return;
+  if (!IS_DEMO_MODE) {
+    firebase.database().ref("/riwayat").push(entry).catch((err) => {
+      console.error("Gagal menyimpan riwayat ke Firebase:", err);
+    });
   }
-  saveSnapshot();
+
+  nextAutosaveAt = Date.now() + AUTOSAVE_INTERVAL_MS;
+}
+
+// Timer auto-save setiap 30 menit (berjalan selama halaman dashboard terbuka)
+setInterval(simpanSnapshot, AUTOSAVE_INTERVAL_MS);
+
+saveNowBtn.addEventListener("click", () => {
+  simpanSnapshot();
+  saveNowBtn.textContent = "✔ Tersimpan";
+  setTimeout(() => (saveNowBtn.textContent = "💾 Simpan Sekarang"), 1500);
 });
 
-// ---------- 7. Unduh seluruh riwayat sebagai CSV ----------
-document.getElementById("downloadBtn").addEventListener("click", async () => {
-  const btn = document.getElementById("downloadBtn");
-  const originalText = btn.textContent;
-  btn.textContent = "Menyiapkan…";
-  btn.disabled = true;
+// =====================================================================
+// 8) DOWNLOAD CSV
+// =====================================================================
+function toCSV(rows) {
+  const header = ["Waktu", "SYS (mmHg)", "DIA (mmHg)", "MAP (mmHg)", "BPM", "SpO2 (%)", "Status"];
+  const lines = [header.join(",")];
 
-  try {
-    const snap = await db.ref("history").once("value");
-    const rows = [];
-    snap.forEach((child) => rows.push(child.val()));
-    rows.sort((a, b) => a.ts - b.ts);
+  rows.forEach((row) => {
+    const status = hitungStatus(Number(row.sistolik) || 0, Number(row.diastolik) || 0);
+    const line = [
+      `"${row.waktu || "-"}"`,
+      row.sistolik ?? "",
+      row.diastolik ?? "",
+      row.map ?? "",
+      row.bpm ?? "",
+      row.spo2 ?? "",
+      status
+    ].join(",");
+    lines.push(line);
+  });
 
-    if (rows.length === 0) {
-      alert("Belum ada data riwayat untuk diunduh.");
-      return;
-    }
+  return lines.join("\n");
+}
 
-    const header = ["Waktu", "SYS (mmHg)", "DIA (mmHg)", "MAP (mmHg)", "BPM", "SpO2 (%)"];
-    const lines = [header.join(",")];
-
-    rows.forEach((r) => {
-      lines.push([
-        formatWaktu(r.ts),
-        r.sistolik ?? "",
-        r.diastolik ?? "",
-        r.map ?? "",
-        r.bpm ?? "",
-        r.spo2 ?? ""
-      ].join(","));
-    });
-
-    const csvContent = "\uFEFF" + lines.join("\r\n"); // BOM agar Excel baca UTF-8 dengan benar
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-
-    const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-");
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `riwayat-bedside-monitor-${stamp}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-  } catch (err) {
-    alert("Gagal mengunduh data: " + err.message);
-  } finally {
-    btn.textContent = originalText;
-    btn.disabled = false;
+downloadBtn.addEventListener("click", () => {
+  if (!historyData.length) {
+    alert("Belum ada data riwayat untuk diunduh. Klik 'Simpan Sekarang' dulu, atau tunggu auto-save 30 menit.");
+    return;
   }
+  const csv = toCSV(historyData);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+  a.href = url;
+  a.download = `riwayat-pasien-monitor-${stamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 });
