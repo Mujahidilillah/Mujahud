@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Bedside Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="dash-body">
+
+  <header class="topbar">
+    <div class="topbar-brand">
+      <svg class="ekg-trace ekg-small" viewBox="0 0 220 40" width="90" height="18" aria-hidden="true">
+        <path class="ekg-path" d="M0 20 H60 L68 20 L74 6 L82 34 L90 20 L96 20 L100 12 L104 20 H220"/>
+      </svg>
+      <span class="brand-name small">BEDSIDE MONITOR</span>
+    </div>
+
+    <div class="topbar-status">
+      <span id="connDot" class="conn-dot"></span>
+      <span id="connLabel" class="conn-label">Menghubungkan…</span>
+    </div>
+
+    <div class="topbar-clock">
+      <span id="clockTime" class="clock-time">--:--:--</span>
+      <span id="clockDate" class="clock-date">-- ------- ----</span>
+    </div>
+
+    <button id="logoutBtn" class="btn btn-ghost">Keluar</button>
+  </header>
+
+  <main class="dash-main">
+
+    <section class="vitals-grid">
+
+      <article class="vital-card vital-bp">
+        <h2 class="vital-title">Tekanan Darah</h2>
+        <div class="vital-bp-row">
+          <div class="vital-bp-item">
+            <span class="vital-number" id="valSistolik">--</span>
+            <span class="vital-unit">SYS mmHg</span>
+          </div>
+          <span class="vital-sep">/</span>
+          <div class="vital-bp-item">
+            <span class="vital-number" id="valDiastolik">--</span>
+            <span class="vital-unit">DIA mmHg</span>
+          </div>
+        </div>
+        <div class="vital-map">
+          <span class="vital-map-label">MAP</span>
+          <span class="vital-map-value" id="valMap">--</span>
+          <span class="vital-unit">mmHg</span>
+        </div>
+        <span id="statusBadge" class="status-badge">MENUNGGU DATA</span>
+      </article>
+
+      <article class="vital-card vital-hr">
+        <h2 class="vital-title">Detak Jantung</h2>
+        <div class="vital-main-row">
+          <span class="vital-number big" id="valBpm">--</span>
+          <span class="vital-unit">BPM</span>
+        </div>
+        <svg class="ekg-trace ekg-card" viewBox="0 0 220 40" width="100%" height="30" aria-hidden="true">
+          <path class="ekg-path ekg-path-hr" d="M0 20 H60 L68 20 L74 6 L82 34 L90 20 L96 20 L100 12 L104 20 H220"/>
+        </svg>
+      </article>
+
+      <article class="vital-card vital-spo2">
+        <h2 class="vital-title">Saturasi Oksigen</h2>
+        <div class="vital-main-row">
+          <span class="vital-number big" id="valSpo2">--</span>
+          <span class="vital-unit">% SpO₂</span>
+        </div>
+      </article>
+
+    </section>
+
+    <section class="history-panel">
+      <div class="history-head">
+        <div>
+          <h2 class="history-title">Riwayat Pengukuran</h2>
+          <p class="history-sub" id="autoSaveInfo">Tersimpan otomatis setiap 30 menit · belum ada data tersimpan</p>
+        </div>
+        <div class="history-actions">
+          <button id="logNowBtn" class="btn btn-ghost">Catat Sekarang</button>
+          <button id="downloadBtn" class="btn btn-primary">Unduh Data (CSV)</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Waktu Dicatat</th>
+              <th>SYS</th>
+              <th>DIA</th>
+              <th>MAP</th>
+              <th>BPM</th>
+              <th>SpO₂</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody">
+            <tr class="empty-row"><td colspan="6">Belum ada riwayat tersimpan.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script src="assets/js/firebase-config.js"></script>
+  <script src="assets/js/dashboard.js"></script>
+</body>
+</html>
