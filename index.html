@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Masuk — Bedside Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="login-body">
+
+  <main class="login-shell">
+    <div class="login-card">
+
+      <div class="brand">
+        <svg class="ekg-trace" viewBox="0 0 220 40" width="140" height="26" aria-hidden="true">
+          <path class="ekg-path" d="M0 20 H60 L68 20 L74 6 L82 34 L90 20 L96 20 L100 12 L104 20 H220"/>
+        </svg>
+        <div class="brand-text">
+          <span class="brand-name">BEDSIDE MONITOR</span>
+          <span class="brand-sub">Panel Akses Perawat</span>
+        </div>
+      </div>
+
+      <h1 class="login-title">Masuk ke Dashboard</h1>
+      <p class="login-desc">Gunakan akun yang terdaftar di Firebase untuk melihat hasil pengukuran pasien secara real-time.</p>
+
+      <form id="loginForm" class="login-form" novalidate>
+        <label class="field">
+          <span class="field-label">Email</span>
+          <input type="email" id="email" name="email" autocomplete="username" placeholder="nama@email.com" required>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Kata Sandi</span>
+          <input type="password" id="password" name="password" autocomplete="current-password" placeholder="••••••••" required>
+        </label>
+
+        <button type="submit" class="btn btn-primary" id="loginBtn">
+          <span id="loginBtnText">Masuk</span>
+        </button>
+
+        <p id="loginError" class="form-error" role="alert" hidden></p>
+      </form>
+
+      <p class="login-footnote">Status alat diperbarui otomatis begitu ESP32 tersambung ke Firebase.</p>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="assets/js/firebase-config.js"></script>
+  <script src="assets/js/auth.js"></script>
+</body>
+</html>
