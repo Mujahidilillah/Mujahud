@@ -1,56 +1,58 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Masuk — Bedside Monitor</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/style.css">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Login — Pasien Monitor</title>
+<link rel="stylesheet" href="css/style.css" />
 </head>
-<body class="login-body">
+<body>
 
-  <main class="login-shell">
-    <div class="login-card">
-
-      <div class="brand">
-        <svg class="ekg-trace" viewBox="0 0 220 40" width="140" height="26" aria-hidden="true">
-          <path class="ekg-path" d="M0 20 H60 L68 20 L74 6 L82 34 L90 20 L96 20 L100 12 L104 20 H220"/>
-        </svg>
-        <div class="brand-text">
-          <span class="brand-name">BEDSIDE MONITOR</span>
-          <span class="brand-sub">Panel Akses Perawat</span>
-        </div>
-      </div>
-
-      <h1 class="login-title">Masuk ke Dashboard</h1>
-      <p class="login-desc">Gunakan akun yang terdaftar di Firebase untuk melihat hasil pengukuran pasien secara real-time.</p>
-
-      <form id="loginForm" class="login-form" novalidate>
-        <label class="field">
-          <span class="field-label">Email</span>
-          <input type="email" id="email" name="email" autocomplete="username" placeholder="nama@email.com" required>
-        </label>
-
-        <label class="field">
-          <span class="field-label">Kata Sandi</span>
-          <input type="password" id="password" name="password" autocomplete="current-password" placeholder="••••••••" required>
-        </label>
-
-        <button type="submit" class="btn btn-primary" id="loginBtn">
-          <span id="loginBtnText">Masuk</span>
-        </button>
-
-        <p id="loginError" class="form-error" role="alert" hidden></p>
-      </form>
-
-      <p class="login-footnote">Status alat diperbarui otomatis begitu ESP32 tersambung ke Firebase.</p>
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="brand">
+      <span class="pulse-dot"></span>
+      <h1>Pasien Monitor</h1>
     </div>
-  </main>
+    <p class="brand-sub">Bedside Monitor Dashboard — masuk untuk melihat data</p>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="assets/js/firebase-config.js"></script>
-  <script src="assets/js/auth.js"></script>
+    <div class="ecg-line">
+      <svg viewBox="0 0 600 60" preserveAspectRatio="none">
+        <polyline fill="none" stroke="#3ee06a" stroke-width="2"
+          points="0,30 40,30 55,10 70,50 85,30 140,30 155,18 165,42 180,30 260,30 275,8 290,52 305,30 380,30 395,18 405,42 420,30 500,30 515,10 530,50 545,30 600,30
+                  600,30 640,30 655,10 670,50 685,30 740,30 755,18 765,42 780,30 860,30 875,8 890,52 905,30 980,30 995,18 1005,42 1020,30 1100,30 1115,10 1130,50 1145,30 1200,30" />
+      </svg>
+    </div>
+
+    <div class="demo-badge" id="demoBadge">
+      ⚠ Firebase belum dikonfigurasi — berjalan dalam DEMO MODE (data simulasi). Klik "Masuk" dengan email/kata sandi apa saja.
+    </div>
+
+    <div class="login-error" id="loginError"></div>
+
+    <form id="loginForm">
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="nama@rumahsakit.com" autocomplete="username" required />
+      </div>
+      <div class="field">
+        <label for="password">Kata Sandi</label>
+        <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required />
+      </div>
+      <button type="submit" class="btn btn-primary" id="loginBtn">Masuk</button>
+    </form>
+
+    <p class="login-footnote">
+      Akun login sama dengan akun Firebase Authentication yang dipakai perangkat ESP32.<br/>
+      Tambah/kelola akun lewat Firebase Console → Authentication.
+    </p>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/auth.js"></script>
 </body>
 </html>
