@@ -5,13 +5,12 @@ import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12
 // Konfigurasi ini mengikuti proyek Firebase pada coding ESP32.
 // Untuk keamanan produksi, aturan Firebase harus membatasi akses sesuai akun.
 const firebaseConfig = {
-  apiKey: "AIzaSyBvA0MXGo2uSG3zt0aHGGTAsej1i7JZWdM",
+  apiKey: "AIzaBvA0MXGo2uSG3zt0aHGGTAsej1iJ7ZWdM",
   authDomain: "bedside-monitor-iot.firebaseapp.com",
   databaseURL: "https://bedside-monitor-iot-default-rtdb.firebaseio.com",
   projectId: "bedside-monitor-iot",
-  storageBucket: "bedside-monitor-iot.appspot.com",
-  messagingSenderId: "REPLACE_WITH_YOUR_MESSAGING_SENDER_ID",
-  appId: "REPLACE_WITH_YOUR_APP_ID"
+  storageBucket: "bedside-monitor-iot.firebasestorage.app",
+  ...
 };
 
 const app = initializeApp(firebaseConfig);
