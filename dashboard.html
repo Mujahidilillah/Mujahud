@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - Bedside Patient Monitor</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ================= HEADER ================= -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="heart-icon">&#10084;</span>
+      <h1>PASIEN MONITOR</h1>
+    </div>
+
+    <div class="topbar-right">
+      <div class="clock-box">
+        <div id="jamRealtime" class="jam">--:--:--</div>
+        <div id="tanggalRealtime" class="tanggal">-- --- ----</div>
+      </div>
+      <div class="user-box">
+        <span id="userEmail">-</span>
+        <button id="logoutBtn" class="btn-logout">Keluar</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- ================= STATUS KONEKSI ================= -->
+    <div id="connStatus" class="conn-status conn-checking">
+      &#9679; Menghubungkan ke perangkat...
+    </div>
+
+    <!-- ================= CARD REALTIME (BPM & SPO2) ================= -->
+    <section class="grid-realtime">
+      <div class="card card-bpm">
+        <div class="card-label">&#10084; DENYUT JANTUNG (BPM)</div>
+        <div class="card-value"><span id="bpmValue">--</span></div>
+        <div class="card-unit">bpm</div>
+        <div id="fingerStatusBpm" class="finger-status">Menunggu jari...</div>
+      </div>
+
+      <div class="card card-spo2">
+        <div class="card-label">SpO&#8322; (SATURASI OKSIGEN)</div>
+        <div class="card-value"><span id="spo2Value">--</span></div>
+        <div class="card-unit">%</div>
+      </div>
+
+      <div class="card card-mode">
+        <div class="card-label">MODE ALAT</div>
+        <div class="card-value card-value-small"><span id="modeValue">-</span></div>
+        <div class="card-unit" id="statusValue">-</div>
+      </div>
+    </section>
+
+    <!-- ================= CARD TEKANAN DARAH ================= -->
+    <section class="card card-tekanan">
+      <div class="card-header">
+        <h2>HASIL PENGUKURAN TEKANAN DARAH TERAKHIR</h2>
+        <span id="waktuUkurTerakhir" class="waktu-ukur">Belum ada data</span>
+      </div>
+
+      <div class="grid-tekanan">
+        <div class="tekanan-item">
+          <div class="tekanan-label">SYS (Sistolik)</div>
+          <div class="tekanan-value" id="sysValue">--</div>
+          <div class="tekanan-unit">mmHg</div>
+        </div>
+        <div class="tekanan-item">
+          <div class="tekanan-label">DIA (Diastolik)</div>
+          <div class="tekanan-value" id="diaValue">--</div>
+          <div class="tekanan-unit">mmHg</div>
+        </div>
+        <div class="tekanan-item">
+          <div class="tekanan-label">MAP</div>
+          <div class="tekanan-value" id="mapValue">--</div>
+          <div class="tekanan-unit">mmHg</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= RIWAYAT TEKANAN DARAH ================= -->
+    <section class="card card-riwayat">
+      <div class="card-header">
+        <h2>RIWAYAT PENGUKURAN TEKANAN DARAH</h2>
+        <div class="riwayat-actions">
+          <span id="infoTekanan" class="autosave-info">Manual: tersimpan tiap selesai ukur &middot; Otomatis: tiap 30 menit</span>
+          <button id="simpanSekarangBtn" class="btn-secondary">Simpan Nilai Saat Ini</button>
+          <button id="downloadTekananBtn" class="btn-primary">&#8681; Download CSV</button>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table id="riwayatTable">
+          <thead>
+            <tr>
+              <th>Waktu</th>
+              <th>SYS</th>
+              <th>DIA</th>
+              <th>MAP</th>
+              <th>BPM</th>
+              <th>SpO&#8322;</th>
+              <th>Status</th>
+              <th>Mode</th>
+            </tr>
+          </thead>
+          <tbody id="riwayatBody">
+            <tr class="riwayat-empty">
+              <td colspan="8">Belum ada riwayat tersimpan.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="riwayat-note">
+        Setiap kali alat selesai mengukur tekanan darah (mode Manual maupun Otomatis), hasilnya otomatis
+        terkirim ke sini dari alat. Klik "Download CSV" kapan saja untuk mengunduh seluruh riwayat.
+      </p>
+    </section>
+
+    <!-- ================= RIWAYAT BPM & SPO2 ================= -->
+    <section class="card card-riwayat">
+      <div class="card-header">
+        <h2>RIWAYAT BPM &amp; SpO&#8322;</h2>
+        <div class="riwayat-actions">
+          <span class="autosave-info">Tersimpan otomatis setiap ada perubahan angka</span>
+          <button id="downloadVitalsBtn" class="btn-primary">&#8681; Download CSV</button>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table id="riwayatVitalsTable">
+          <thead>
+            <tr>
+              <th>Waktu</th>
+              <th>BPM</th>
+              <th>SpO&#8322;</th>
+              <th>Mode</th>
+            </tr>
+          </thead>
+          <tbody id="riwayatVitalsBody">
+            <tr class="riwayat-empty">
+              <td colspan="4">Belum ada perubahan BPM/SpO&#8322; tersimpan.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="riwayat-note">
+        Setiap kali angka BPM atau SpO&#8322; berubah (di mode Manual maupun Otomatis, selama jari terdeteksi
+        di sensor), alat otomatis mengirim baris baru ke sini. Klik "Download CSV" kapan saja untuk mengunduh
+        seluruh riwayat.
+      </p>
+    </section>
+
+  </main>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+  <script src="js/firebase-config.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
