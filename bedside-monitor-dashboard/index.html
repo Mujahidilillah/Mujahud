@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - Bedside Patient Monitor</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="login-body">
+
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="heart-icon">&#10084;</span>
+      <h1>PASIEN MONITOR</h1>
+      <p>Bedside Monitor Dashboard</p>
+    </div>
+
+    <form id="loginForm" class="login-form">
+      <label for="email">Email</label>
+      <input type="email" id="email" placeholder="email@contoh.com" required autocomplete="username">
+
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
+
+      <button type="submit" id="loginBtn">MASUK</button>
+
+      <p id="loginError" class="login-error"></p>
+    </form>
+
+    <p class="login-footer">Login menggunakan akun Firebase Authentication (Email/Password) yang sama dengan yang didaftarkan untuk alat ESP32.</p>
+  </div>
+
+  <!-- Firebase SDK (versi compat, tidak perlu npm/build tool) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+  <script src="js/firebase-config.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>
