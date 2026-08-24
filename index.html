@@ -1,96 +1,41 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Bedside Monitor IoT</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - Bedside Patient Monitor</title>
+<link rel="stylesheet" href="css/style.css">
 </head>
-<body>
-  <div id="loginPage" class="auth-wrap">
-    <div class="auth-card">
-      <div class="logo">♥</div>
-      <h1>Bedside Monitor</h1>
-      <p>Dashboard Monitoring Pasien IoT</p>
-      <form id="loginForm">
-        <label>Email</label>
-        <input id="email" type="email" autocomplete="username" required>
-        <label>Password</label>
-        <input id="password" type="password" autocomplete="current-password" required>
-        <button type="submit" class="primary">Masuk</button>
-        <div id="loginError" class="error"></div>
-      </form>
+<body class="login-body">
+
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="heart-icon">&#10084;</span>
+      <h1>PASIEN MONITOR</h1>
+      <p>Bedside Monitor Dashboard</p>
     </div>
+
+    <form id="loginForm" class="login-form">
+      <label for="email">Email</label>
+      <input type="email" id="email" placeholder="email@contoh.com" required autocomplete="username">
+
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
+
+      <button type="submit" id="loginBtn">MASUK</button>
+
+      <p id="loginError" class="login-error"></p>
+    </form>
+
+    <p class="login-footer">Login menggunakan akun Firebase Authentication (Email/Password) yang sama dengan yang didaftarkan untuk alat ESP32.</p>
   </div>
 
-  <div id="dashboardPage" class="hidden">
-    <header class="topbar">
-      <div>
-        <strong>♥ BEDside Monitor IoT</strong>
-        <span class="status-dot"></span><span id="connectionText">Menghubungkan...</span>
-      </div>
-      <div class="top-actions">
-        <span id="clock">--:--:--</span>
-        <button id="downloadBtn">Download Data</button>
-        <button id="logoutBtn" class="danger">Keluar</button>
-      </div>
-    </header>
+  <!-- Firebase SDK (versi compat, tidak perlu npm/build tool) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
-    <main class="container">
-      <section class="hero">
-        <div>
-          <h2>Dashboard Monitoring Pasien</h2>
-          <p>Data dari ESP32 → Firebase Realtime Database</p>
-        </div>
-        <div class="mode-badge">REAL-TIME</div>
-      </section>
-
-      <section class="cards">
-        <article class="metric bp">
-          <span>Tekanan Sistolik</span><b id="sys">--</b><small>mmHg</small>
-        </article>
-        <article class="metric bp">
-          <span>Tekanan Diastolik</span><b id="dia">--</b><small>mmHg</small>
-        </article>
-        <article class="metric">
-          <span>MAP</span><b id="map">--</b><small>mmHg</small>
-        </article>
-        <article class="metric bpm">
-          <span>Heart Rate / BPM</span><b id="bpm">--</b><small>bpm</small>
-        </article>
-        <article class="metric spo2">
-          <span>SpO₂</span><b id="spo2">--</b><small>%</small>
-        </article>
-        <article class="metric">
-          <span>Status Pasien</span><b id="patientStatus">STANDBY</b><small id="lastUpdate">Belum ada data</small>
-        </article>
-      </section>
-
-      <section class="panel">
-        <div class="panel-head">
-          <div><h3>Riwayat Pengukuran</h3><p>Disimpan otomatis setiap hasil pengukuran selesai.</p></div>
-          <button id="clearHistory" class="outline">Hapus Riwayat Lokal</button>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Waktu</th><th>SYS</th><th>DIA</th><th>MAP</th><th>BPM</th><th>SpO₂</th><th>Status</th></tr></thead>
-            <tbody id="historyBody"><tr><td colspan="7" class="empty">Menunggu pengukuran...</td></tr></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="panel">
-        <div class="panel-head">
-          <div><h3>Data Real-Time</h3><p>Bagian ini mengikuti node <code>/realtime</code> dari program ESP32.</p></div>
-        </div>
-        <div class="realtime">
-          <div><span>BPM</span><strong id="rtBpm">--</strong></div>
-          <div><span>SpO₂</span><strong id="rtSpo2">--</strong></div>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <script type="module" src="app.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/login.js"></script>
 </body>
 </html>
